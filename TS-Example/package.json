@@ -1,0 +1,19 @@
+{
+  "name": "ts-example",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "build": "esbuild ./*.ts --outdir=dist --out-extension:.js=.mjs  --format=esm",
+    "start": "node dist/index.mjs"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "esbuild": "^0.18.17",
+    "typescript": "^5.1.6"
+  },
+  "dependencies": {
+    "@obolnetwork/obol-sdk": "^1.0.7",
+    "ethers": "^6.4.0"
+  }
+}
