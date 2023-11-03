@@ -6,3 +6,7 @@ node_modules
 
 # Local
 dist
+
+.charon/
+charon-enr-private-key
+**/validator_keys/
