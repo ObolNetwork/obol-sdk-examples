@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "@obolnetwork/obol-sdk": "^1.0.8",
-    "ethers": "^6.6.4"
+    "ethers": "^6.6.4",
+    "papaparse": "^5.4.1"
   }
 }
