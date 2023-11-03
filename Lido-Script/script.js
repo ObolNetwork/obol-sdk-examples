@@ -17,43 +17,39 @@ function parseCSV(filePath) {
   });
 }
 
-// Function to construct the clusters JSON from parsed CSV data
-async function constructClustersFromCSV(operatorsFilePath, validatorsFilePath) {
-  const operators = await parseCSV(operatorsFilePath);
-  const validators = await parseCSV(validatorsFilePath);
+async function constructClustersFromCSV() {
+  const parsedClusters = await parseCSV("clusters.csv");
 
-  let clusters = {};
+  let clusters = [];
 
   // Assume that each operator CSV row includes a cluster name
-  for (const op of operators) {
-    if (!clusters[op.cluster_name]) {
-      clusters[op.cluster_name] = {
-        name: op.cluster_name,
-        operators: [],
-        validators: [],
-      };
-    }
-    clusters[op.cluster_name].operators.push({ address: op.address });
-  }
+  for (const row of parsedClusters) {
+    console.log(row,"roow")
+    const newCluster = {
+      name: row.cluster_name,
+      operators: [],
+      validators: [],
+    };
 
-  // Assume that each validator CSV row includes a cluster name
-  for (const val of validators) {
-    if (clusters[val.cluster_name]) {
-      clusters[val.cluster_name].validators.push({
-        fee_recipient_address: val.fee_recipient_address,
-        withdrawal_address: val.withdrawal_address,
+    // Add validators
+    for (let i = 0; i < parseInt(row.validator_count, 10); i++) {
+      newCluster.validators.push({
+        fee_recipient_address: row.fee_recipient_address,
+        withdrawal_address: row.withdrawal_address,
       });
     }
+
+    Object.keys(row).forEach((key) => {
+      if (key.startsWith("operator")) {
+        newCluster.operators.push({ address: row[key] });
+      }
+    });
+
+    clusters.push(newCluster);
   }
-
-  return Object.values(clusters); // Convert the object into an array
+console.log(clusters,"clusters")
+  return clusters;
 }
-
-// Convert CSV files to clusters array
-const clusters = await constructClustersFromCSV(
-  "operators.csv",
-  "validators.csv"
-);
 
 // Use a dummy creator address
 const mnemonic = ethers.Wallet.createRandom().mnemonic?.phrase || "";
@@ -88,6 +84,8 @@ const createObolCluster = async (clusterConfig) => {
 // Create all clusters. Should consider graceful retrying here if the number of clusters is too large.
 async function createMultipleClusters() {
   try {
+    const clusters = await constructClustersFromCSV();
+
     const promises = clusters.map(async (clusterConfig) => {
       return await createObolCluster(clusterConfig);
     });
