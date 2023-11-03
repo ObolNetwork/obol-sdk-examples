@@ -24,7 +24,7 @@ async function constructClustersFromCSV() {
 
   // Assume that each operator CSV row includes a cluster name
   for (const row of parsedClusters) {
-    console.log(row,"roow")
+    console.log(row, "roow");
     const newCluster = {
       name: row.cluster_name,
       operators: [],
@@ -40,14 +40,14 @@ async function constructClustersFromCSV() {
     }
 
     Object.keys(row).forEach((key) => {
-      if (key.startsWith("operator")) {
+      if (key.startsWith("operator") && row[key]) {
         newCluster.operators.push({ address: row[key] });
       }
     });
 
     clusters.push(newCluster);
   }
-console.log(clusters,"clusters")
+  console.log(clusters, "clusters");
   return clusters;
 }
 
