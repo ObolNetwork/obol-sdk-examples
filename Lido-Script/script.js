@@ -1,8 +1,17 @@
 import { Client } from "@obolnetwork/obol-sdk";
 import { ethers } from "ethers";
 import * as fs from "fs";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 import pkg from "papaparse";
 const { parse } = pkg;
+
+//save results in csv
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const headers = "cluster_name,invite\n";
+const filePath = join(__dirname, "invites.csv");
+const writeStream = fs.createWriteStream(filePath);
+writeStream.write(headers);
 
 // Function to parse CSV file
 function parseCSV(filePath) {
@@ -70,6 +79,9 @@ const createObolCluster = async (clusterConfig) => {
     console.log(
       `${clusterConfig.name}: https://holesky.launchpad.obol.tech/dv?configHash=${configHash}`
     );
+    writeStream.write(
+      `${clusterConfig.name},https://holesky.launchpad.obol.tech/dv?configHash=${configHash}\n`
+    );
     return configHash;
   } catch (err) {
     console.log(
@@ -93,6 +105,14 @@ async function createMultipleClusters() {
     const results = await Promise.all(promises);
 
     console.log(results, "results");
+    
+    writeStream.end();
+    writeStream.on("finish", () => {
+      console.log(`CSV file has been written to ${filePath}`);
+    });
+    writeStream.on("error", (err) => {
+      console.error("An error occurred:", err);
+    });
   } catch (error) {
     console.error(error);
   }
