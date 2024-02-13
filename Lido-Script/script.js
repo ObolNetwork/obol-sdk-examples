@@ -33,7 +33,6 @@ async function constructClustersFromCSV() {
 
   // Assume that each operator CSV row includes a cluster name
   for (const row of parsedClusters) {
-    console.log(row, "roow");
     const newCluster = {
       name: row.cluster_name,
       operators: [],
@@ -105,7 +104,7 @@ async function createMultipleClusters() {
     const results = await Promise.all(promises);
 
     console.log(results, "results");
-    
+
     writeStream.end();
     writeStream.on("finish", () => {
       console.log(`CSV file has been written to ${filePath}`);
