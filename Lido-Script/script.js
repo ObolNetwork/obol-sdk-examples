@@ -1,858 +1,62 @@
 import { Client } from "@obolnetwork/obol-sdk";
 import { ethers } from "ethers";
 import * as fs from "fs";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
+import pkg from "papaparse";
+const { parse } = pkg;
 
-// Array of clusters objects to create. Will be crafted in this try/catch by parsing the CSV of operator addresses
-let clusters;
+//save results in csv
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const headers = "cluster_name,invite\n";
+const filePath = join(__dirname, "invites.csv");
+const writeStream = fs.createWriteStream(filePath);
+writeStream.write(headers);
 
-try {
-  // Read the CSV file synchronously
-  const data = fs.readFileSync("./data.csv", "utf8");
+// Function to parse CSV file
+function parseCSV(filePath) {
+  const csvData = fs.readFileSync(filePath, "utf8");
+  return new Promise((resolve) => {
+    parse(csvData, {
+      header: true,
+      complete: (results) => {
+        resolve(results.data);
+      },
+    });
+  });
+}
 
-  // Split the CSV data into rows
-  const rows = data.split("\n");
+async function constructClustersFromCSV() {
+  const parsedClusters = await parseCSV("clusters.csv");
 
-  // Extract the header row
-  const headers = rows[0].split(",");
+  let clusters = [];
 
-  // Initialize an array to store the parsed data
-  const results = [];
+  // Assume that each operator CSV row includes a cluster name
+  for (const row of parsedClusters) {
+    const newCluster = {
+      name: row.cluster_name,
+      operators: [],
+      validators: [],
+    };
 
-  // Parse the data rows
-  for (let i = 1; i < rows.length; i++) {
-    const row = rows[i].split(",");
-    const rowData = {};
-
-    for (let j = 0; j < headers.length; j++) {
-      rowData[headers[j].trim()] = row[j].trim();
+    // Add validators
+    for (let i = 0; i < parseInt(row.validator_count, 10); i++) {
+      newCluster.validators.push({
+        fee_recipient_address: row.fee_recipient_address,
+        withdrawal_address: row.withdrawal_address,
+      });
     }
 
-    results.push(rowData);
+    Object.keys(row).forEach((key) => {
+      if (key.startsWith("operator") && row[key]) {
+        newCluster.operators.push({ address: row[key] });
+      }
+    });
+
+    clusters.push(newCluster);
   }
-
-  // Now, the `results` array contains the parsed CSV data
-  console.log(results);
-
-  // Now craft cluster objects from the array of CSV data
-  clusters = results.map((obj) => {
-    return {
-      name: obj.cluster_name,
-      operators: [
-        { address: obj.operator1 },
-        { address: obj.operator2 },
-        { address: obj.operator3 },
-        { address: obj.operator4 },
-        { address: obj.operator5 },
-        { address: obj.operator6 },
-        { address: obj.operator7 },
-      ],
-      // Holesky Lido Vaults, be sure to update for other networks
-      validators: [
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-        {
-          fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-          withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
-        },
-      ],
-    };
-  });
-} catch (err) {
-  console.error("Error reading the file:", err);
+  console.log(clusters, "clusters");
+  return clusters;
 }
 
 // Use a dummy creator address
@@ -874,9 +78,16 @@ const createObolCluster = async (clusterConfig) => {
     console.log(
       `${clusterConfig.name}: https://holesky.launchpad.obol.tech/dv?configHash=${configHash}`
     );
+    writeStream.write(
+      `${clusterConfig.name},https://holesky.launchpad.obol.tech/dv?configHash=${configHash}\n`
+    );
     return configHash;
   } catch (err) {
-    console.log(`Failed to create cluster for ${clusterConfig.name}. Error: ${err.toString()}.`);
+    console.log(
+      `Failed to create cluster for ${
+        clusterConfig.name
+      }. Error: ${err.toString()}.`
+    );
     throw new Error(err);
   }
 };
@@ -884,6 +95,8 @@ const createObolCluster = async (clusterConfig) => {
 // Create all clusters. Should consider graceful retrying here if the number of clusters is too large.
 async function createMultipleClusters() {
   try {
+    const clusters = await constructClustersFromCSV();
+
     const promises = clusters.map(async (clusterConfig) => {
       return await createObolCluster(clusterConfig);
     });
@@ -891,6 +104,14 @@ async function createMultipleClusters() {
     const results = await Promise.all(promises);
 
     console.log(results, "results");
+
+    writeStream.end();
+    writeStream.on("finish", () => {
+      console.log(`CSV file has been written to ${filePath}`);
+    });
+    writeStream.on("error", (err) => {
+      console.error("An error occurred:", err);
+    });
   } catch (error) {
     console.error(error);
   }
