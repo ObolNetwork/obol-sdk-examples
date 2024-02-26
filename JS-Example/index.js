@@ -1,4 +1,4 @@
-import { Client } from "@obolnetwork/obol-sdk";
+import { Client, validateClusterLock } from "@obolnetwork/obol-sdk";
 import { ethers } from "ethers";
 
 //To run the example in terminal, we can create a random privatekey to instanisiate obol-sdk Client
@@ -17,6 +17,7 @@ const clusterConfig = {
     },
   ],
 };
+
 const mnemonic = ethers.Wallet.createRandom().mnemonic?.phrase || "";
 const privateKey = ethers.Wallet.fromPhrase(mnemonic).privateKey;
 const wallet = new ethers.Wallet(privateKey);
@@ -86,14 +87,48 @@ const getObolClusterLock = async (configHash) => {
 };
 
 /**
+ * Accepts joining a cluster
+ * @param operatorPayload.enr The operator enr
+ * @param operatorPayload.version The cluster configuration version
+ * @param configHash The cluster configHash
+ * @returns the updated cluster
+ */
+const acceptClusterDefinition = async ({ enr, version }, configHash) => {
+  try {
+    //const client = await obolClient();
+    const updatedClusterDefintiion =  await client.acceptClusterDefinition(
+      {
+        enr,
+        version,
+      },
+      configHash
+    );
+    return updatedClusterDefintiion;
+  } catch (err) {
+    console.log(err, "err");
+  }
+};
+
+/**
+ * Returns if clusterLock is valid
+ * @param clusterLock The clusterLock file that requires verification
+ * @returns true if it is valid
+ */
+const validateObolClusterLock = async (clusterLock) => {
+  try {
+    const isValidLock = await validateClusterLock(clusterLock);
+    return isValidLock;
+  } catch (err) {
+    console.log(err, "err");
+  }
+};
+
+/**
  * Activates cluster by depositing 32 ethers
  * @param clusterLock The cluster lock that contains the validator to be activated
  * @param validatorIndex The validator index
  */
-const activateValidator = async (
-  clusterLock,
-  validatorIndex,
-) => {
+const activateValidator = async (clusterLock, validatorIndex) => {
   try {
     let DEPOSIT_CONTRACT_ADDRESS; // 0x00000000219ab540356cBB839Cbe05303d7705Fa for Mainnet, "0xff50ed3d0ec03aC01D4C79aAd74928BFF48a7b2b" for GOERLI
     let depositContractABI; // https://etherscan.io/address/0x00000000219ab540356cBB839Cbe05303d7705Fa#code for Mainnet, and replace the address for Goerli

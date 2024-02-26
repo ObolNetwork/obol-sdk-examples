@@ -1,6 +1,5 @@
 import { ethers } from "ethers";
-import { Client } from "@obolnetwork/obol-sdk";
-import { ClusterDefintion, ClusterLock } from "@obolnetwork/obol-sdk/dist/types.js";
+import { Client, validateClusterLock, ClusterDefintion, ClusterLock, OperatorPayload } from "@obolnetwork/obol-sdk";
 
 //To run the example in terminal, we can create a random privatekey to instanisiate obol-sdk Client
 const clusterConfig = {
@@ -17,6 +16,7 @@ const clusterConfig = {
     withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e"
   }],
 }
+
 const mnemonic = ethers.Wallet.createRandom().mnemonic?.phrase || "";
 const privateKey = ethers.Wallet.fromPhrase(mnemonic).privateKey;
 const wallet = new ethers.Wallet(privateKey);
@@ -78,6 +78,43 @@ const getObolClusterLock = async (configHash: string): Promise<ClusterLock> => {
     //const client = await obolClient();
     const lockFile = await client.getClusterLock(configHash);
     return lockFile;
+  } catch (err) {
+    console.log(err, "err");
+  }
+};
+
+/**
+ * Accepts joining a cluster
+ * @param operatorPayload.enr The operator enr
+ * @param operatorPayload.version The cluster configuration version
+ * @param configHash The cluster configHash
+ * @returns the updated cluster
+ */
+const acceptClusterDefinition = async (operatorPayload: OperatorPayload, configHash: string): Promise<ClusterDefintion> => {
+  try {
+    //const client = await obolClient();
+    const updatedClusterDefintiion = await client.acceptClusterDefinition(
+      {
+        enr: operatorPayload.enr,
+        version: operatorPayload.version,
+      },
+      configHash
+    );
+    return updatedClusterDefintiion;
+  } catch (err) {
+    console.log(err, "err");
+  }
+};
+
+/**
+ * Returns if clusterLock is valid
+ * @param clusterLock The clusterLock file that requires verification
+ * @returns true if it is valid
+ */
+const validateObolClusterLock = async (clusterLock: ClusterLock) => {
+  try {
+    const isValidLock = await validateClusterLock(clusterLock);
+    return isValidLock;
   } catch (err) {
     console.log(err, "err");
   }
