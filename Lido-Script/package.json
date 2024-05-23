@@ -5,12 +5,13 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node script.js"
+    "start:mainnet": "node script.js beta",
+    "start:holesky": "node script.js holesky"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@obolnetwork/obol-sdk": "^1.0.12",
+    "@obolnetwork/obol-sdk": "^1.0.15",
     "ethers": "^6.6.4",
     "papaparse": "^5.4.1"
   }

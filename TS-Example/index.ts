@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { Client, validateClusterLock, ClusterDefintion, ClusterLock, OperatorPayload } from "@obolnetwork/obol-sdk";
+import { Client, validateClusterLock, ClusterDefinition, ClusterLock, OperatorPayload } from "@obolnetwork/obol-sdk";
 
 //To run the example in terminal, we can create a random privatekey to instanisiate obol-sdk Client
 const clusterConfig = {
@@ -21,7 +21,7 @@ const mnemonic = ethers.Wallet.createRandom().mnemonic?.phrase || "";
 const privateKey = ethers.Wallet.fromPhrase(mnemonic).privateKey;
 const wallet = new ethers.Wallet(privateKey);
 const signer = wallet.connect(null);
-const client = new Client({ baseUrl: "https://api.obol.tech", chainId: 5 }, signer);
+const client = new Client({ baseUrl: "https://api.obol.tech", chainId: 17000 }, signer as any);
 
 /** Instantiates Obol SDK CLient
  * @returns Obol SDK client
@@ -30,12 +30,26 @@ const obolClient = async (): Promise<Client> => {
   const provider = new ethers.BrowserProvider((window as any).ethereum);
   try {
     const signer = await provider.getSigner();
-    const client = new Client({ baseUrl: "https://api.obol.tech", chainId: 5 }, signer);
+    const client = new Client({ baseUrl: "https://api.obol.tech", chainId: 1 }, signer as any);
     return client
   } catch (err) {
     console.log(err, "err");
   }
 }
+
+/**
+ * Returns successful authorization on accepting latest terms and conditions on https://obol.tech/terms.pdf
+ * @returns successful authorization
+ */
+const acceptObolLatestTermsAndConditions = async (): Promise<string> => {
+  try {
+    //const client = await obolClient();
+    const isAuthorised = await client.acceptObolLatestTermsAndConditions();
+    return isAuthorised;
+  } catch (err) {
+    console.log(err, "err");
+  }
+};
 
 /**
  * Returns the cluster config hash after saving cluster definition
@@ -46,7 +60,6 @@ const createObolCluster = async (): Promise<string> => {
   try {
     //const client = await obolClient();
     const configHash = await client.createClusterDefinition(clusterConfig);
-    console.log(configHash, "configHash")
     return configHash;
   } catch (err) {
     console.log(err, "err");
@@ -58,7 +71,7 @@ const createObolCluster = async (): Promise<string> => {
  * @param configHash The cluster hash returned from createClusterDefinition
  * @returns The partial/complete cluster definition
  */
-const getObolClusterDefinition = async (configHash: string): Promise<ClusterDefintion> => {
+const getObolClusterDefinition = async (configHash: string): Promise<ClusterDefinition> => {
   try {
     //const client = await obolClient();
     const clusterDefinition = await client.getClusterDefinition(configHash);
@@ -90,7 +103,7 @@ const getObolClusterLock = async (configHash: string): Promise<ClusterLock> => {
  * @param configHash The cluster configHash
  * @returns the updated cluster
  */
-const acceptClusterDefinition = async (operatorPayload: OperatorPayload, configHash: string): Promise<ClusterDefintion> => {
+const acceptClusterDefinition = async (operatorPayload: OperatorPayload, configHash: string): Promise<ClusterDefinition> => {
   try {
     //const client = await obolClient();
     const updatedClusterDefintiion = await client.acceptClusterDefinition(
@@ -159,4 +172,11 @@ const activateValidator = async (
 };
 
 
-console.log(createObolCluster())
+const testFunction = async () => {
+  const isAuthorised = await acceptObolLatestTermsAndConditions();
+  console.log(isAuthorised, "isAuthorised");
+  const testingClusterDefinition = await createObolCluster();
+  console.log(testingClusterDefinition, "testingClusterDefinition");
+};
+
+testFunction();
