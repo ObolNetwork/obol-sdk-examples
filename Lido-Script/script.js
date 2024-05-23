@@ -60,7 +60,7 @@ const signer = wallet.connect(null);
 
 // Setup SDK for mainnet, make sure to change withdrawal credentials and fee recipient if you change the network/chainId!
 const client = new Client(
-  { baseUrl: "https://api.obol.tech", chainId: 1 },
+  { baseUrl: "https://obol-api-nonprod-dev.dev.obol.tech", chainId: 17000 },
   signer
 );
 
@@ -69,7 +69,7 @@ const createObolCluster = async (clusterConfig) => {
   try {
     const configHash = await client.createClusterDefinition(clusterConfig);
     console.log(
-      `${clusterConfig.name}: https://beta.launchpad.obol.tech/dv?configHash=${configHash}`
+      `${clusterConfig.name}: https://dev.launchpad.obol.tech/dv?configHash=${configHash}`
     );
     return configHash;
   } catch (err) {
@@ -94,11 +94,14 @@ async function createMultipleClusters() {
 
     const clusters = await constructClustersFromCSV();
 
+    //accept Obol latest terms and conditions before cluster creation/acceptance
+    await client.acceptObolLatestTermsAndConditions();
+
     for (let i = 0; i < clusters.length; i++) {
       const clusterConfig = clusters[i];
       const configHash = await createObolCluster(clusterConfig);
       writeStream.write(
-        `${clusterConfig.name},https://beta.launchpad.obol.tech/dv?configHash=${configHash}\n`
+        `${clusterConfig.name},https://dev.launchpad.obol.tech/dv?configHash=${configHash}\n`
       );
     }
 

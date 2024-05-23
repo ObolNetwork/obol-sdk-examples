@@ -23,7 +23,7 @@ const privateKey = ethers.Wallet.fromPhrase(mnemonic).privateKey;
 const wallet = new ethers.Wallet(privateKey);
 const signer = wallet.connect(null);
 const client = new Client(
-  { baseUrl: "https://api.obol.tech", chainId: 17000 },
+  { baseUrl: "https://obol-api-nonprod-dev.dev.obol.tech", chainId: 17000 },
   signer
 );
 
@@ -34,10 +34,24 @@ const obolClient = async () => {
   const provider = new ethers.BrowserProvider(window.ethereum);
   const signer = await provider.getSigner();
   const client = new Client(
-    { baseUrl: "https://api.obol.tech", chainId: 5 },
+    { baseUrl: "https://api.obol.tech", chainId: 17000 },
     signer
   );
   return client;
+};
+
+/**
+ * Returns successful authorization on accepting latest terms and conditions on https://obol.tech/terms.pdf
+ * @returns successful authorization
+ */
+const acceptObolLatestTermsAndConditions = async () => {
+  try {
+    //const client = await obolClient();
+    const isAuthorised = await client.acceptObolLatestTermsAndConditions();
+    return isAuthorised;
+  } catch (err) {
+    console.log(err, "err");
+  }
 };
 
 /**
@@ -49,7 +63,6 @@ const createObolCluster = async () => {
   try {
     //const client = await obolClient();
     const configHash = await client.createClusterDefinition(clusterConfig);
-    console.log(configHash, "configHash");
     return configHash;
   } catch (err) {
     console.log(err, "err");
@@ -96,7 +109,7 @@ const getObolClusterLock = async (configHash) => {
 const acceptClusterDefinition = async ({ enr, version }, configHash) => {
   try {
     //const client = await obolClient();
-    const updatedClusterDefintiion =  await client.acceptClusterDefinition(
+    const updatedClusterDefintiion = await client.acceptClusterDefinition(
       {
         enr,
         version,
@@ -158,4 +171,11 @@ const activateValidator = async (clusterLock, validatorIndex) => {
   }
 };
 
-console.log(createObolCluster());
+const testFunction = async () => {
+  const isAuthorised = await acceptObolLatestTermsAndConditions();
+  console.log(isAuthorised, "isAuthorised");
+  const testingClusterDefinition = await createObolCluster();
+  console.log(testingClusterDefinition, "testingClusterDefinition");
+};
+
+testFunction();
