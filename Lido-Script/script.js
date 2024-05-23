@@ -60,7 +60,7 @@ const signer = wallet.connect(null);
 
 // Setup SDK for mainnet, make sure to change withdrawal credentials and fee recipient if you change the network/chainId!
 const client = new Client(
-  { baseUrl: "https://obol-api-nonprod-dev.dev.obol.tech", chainId: 17000 },
+  { baseUrl: "https://api.obol.tech", chainId: 17000 },
   signer
 );
 
@@ -69,7 +69,7 @@ const createObolCluster = async (clusterConfig) => {
   try {
     const configHash = await client.createClusterDefinition(clusterConfig);
     console.log(
-      `${clusterConfig.name}: https://dev.launchpad.obol.tech/dv?configHash=${configHash}`
+      `${clusterConfig.name}: https://holesky.launchpad.obol.tech/dv?configHash=${configHash}`
     );
     return configHash;
   } catch (err) {
@@ -101,7 +101,7 @@ async function createMultipleClusters() {
       const clusterConfig = clusters[i];
       const configHash = await createObolCluster(clusterConfig);
       writeStream.write(
-        `${clusterConfig.name},https://dev.launchpad.obol.tech/dv?configHash=${configHash}\n`
+        `${clusterConfig.name},https://holesky.launchpad.obol.tech/dv?configHash=${configHash}\n`
       );
     }
 

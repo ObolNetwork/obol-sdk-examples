@@ -23,7 +23,7 @@ const privateKey = ethers.Wallet.fromPhrase(mnemonic).privateKey;
 const wallet = new ethers.Wallet(privateKey);
 const signer = wallet.connect(null);
 const client = new Client(
-  { baseUrl: "https://obol-api-nonprod-dev.dev.obol.tech", chainId: 17000 },
+  { baseUrl: "https://api.obol.tech", chainId: 17000 },
   signer
 );
 
@@ -34,7 +34,7 @@ const obolClient = async () => {
   const provider = new ethers.BrowserProvider(window.ethereum);
   const signer = await provider.getSigner();
   const client = new Client(
-    { baseUrl: "https://api.obol.tech", chainId: 17000 },
+    { baseUrl: "https://api.obol.tech", chainId: 1 },
     signer
   );
   return client;
