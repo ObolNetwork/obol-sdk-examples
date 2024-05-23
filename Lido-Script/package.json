@@ -5,7 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node script.js"
+    "start:mainnet": "node script.js beta",
+    "start:holesky": "node script.js holesky"
   },
   "author": "",
   "license": "ISC",
