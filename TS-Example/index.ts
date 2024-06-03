@@ -21,7 +21,7 @@ const mnemonic = ethers.Wallet.createRandom().mnemonic?.phrase || "";
 const privateKey = ethers.Wallet.fromPhrase(mnemonic).privateKey;
 const wallet = new ethers.Wallet(privateKey);
 const signer = wallet.connect(null);
-const client = new Client({ baseUrl: "https://api.obol.tech", chainId: 17000 }, signer as any);
+const client = new Client({ baseUrl: "https://api.obol.tech", chainId: 1 }, signer as any);
 
 /** Instantiates Obol SDK CLient
  * @returns Obol SDK client
