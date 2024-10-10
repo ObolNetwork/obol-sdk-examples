@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { Client, validateClusterLock, ClusterDefinition, ClusterLock, OperatorPayload } from "@obolnetwork/obol-sdk";
+import { Client, validateClusterLock, ClusterDefinition, ClusterLock, OperatorPayload, RewardsSplitPayload, ClusterValidator, TotalSplitPayload } from "@obolnetwork/obol-sdk";
 
 //To run the example in terminal, we can create a random privatekey to instanisiate obol-sdk Client
 const clusterConfig = {
@@ -128,6 +128,54 @@ const validateObolClusterLock = async (clusterLock: ClusterLock) => {
   try {
     const isValidLock = await validateClusterLock(clusterLock);
     return isValidLock;
+  } catch (err) {
+    console.log(err, "err");
+  }
+};
+
+/**
+ * deployes an owr and a splitter and return their addreses to be used as withdrawal and feerecipient address
+ * @param rewardsSplitPayload payload needed for OWR/Splitter deployment
+ * @returns OWR address as withdrawal_address and splitter address as fee_recipient_address
+ */
+const createObolRewardsSplit = async ({
+  splitRecipients, //{ account: 0xC35CfCd67b9C27345a54EDEcC1033F2284148c81, percentAllocation: 99},
+  principalRecipient,
+  etherAmount, //64
+  ObolRAFSplit, // optional and defaults to 1
+  distributorFee, // optional and defaults to 0
+  controllerAddress, // optional and defaults to ZeroAddress
+  recoveryAddress  // optional and defaults to ZeroAddress
+}: RewardsSplitPayload): Promise<ClusterValidator> => {
+  try {
+    const { withdrawal_address, fee_recipient_address } =
+      await client.createObolRewardsSplit({
+        splitRecipients,
+        principalRecipient,
+        etherAmount,
+      });
+    return { withdrawal_address, fee_recipient_address }
+  } catch (err) {
+    console.log(err, "err");
+  }
+};
+
+/**
+ * deployes a splitter and return its address to be used as withdrawal and feerecipient address
+ * @param TotalSplitPayload payload needed for Splitter deployment
+ * @returns splitter address as withdrawal_address and as fee_recipient_address
+ */
+const createObolTotalSplit = async ({
+  splitRecipients, //{ account: 0xC35CfCd67b9C27345a54EDEcC1033F2284148c81, percentAllocation: 99.0},
+  ObolRAFSplit, // optional and defaults to 0.1
+  distributorFee, // optional and defaults to 0
+  controllerAddress, // optional and defaults to ZeroAddress
+}: TotalSplitPayload): Promise<ClusterValidator> => {
+  try {
+    const { withdrawal_address, fee_recipient_address } = await client.createObolTotalSplit({
+      splitRecipients
+    })
+    return { withdrawal_address, fee_recipient_address }
   } catch (err) {
     console.log(err, "err");
   }
