@@ -13,7 +13,7 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
-    "@obolnetwork/obol-sdk": "^2.1.0",
+    "@obolnetwork/obol-sdk": "^2.4.3",
     "ethers": "^6.4.0"
   }
 }
