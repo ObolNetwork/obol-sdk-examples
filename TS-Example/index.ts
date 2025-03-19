@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { Client, validateClusterLock, ClusterDefinition, ClusterLock, OperatorPayload, RewardsSplitPayload, ClusterValidator, TotalSplitPayload } from "@obolnetwork/obol-sdk";
+import { Client, validateClusterLock, ClusterDefinition, ClusterLock, OperatorPayload, RewardsSplitPayload, ClusterValidator, TotalSplitPayload, Incentives } from "@obolnetwork/obol-sdk";
 
 //To run the example in terminal, we can create a random privatekey to instanisiate obol-sdk Client
 const clusterConfig = {
@@ -36,6 +36,29 @@ const obolClient = async (): Promise<Client> => {
     console.log(err, "err");
   }
 }
+
+/** Instantiates Obol SDK CLient with neither signer nor provider
+ * @returns Obol SDK client
+ */
+const obolClientًWithoutProvider = async () => {
+  const client = new Client(
+    { baseUrl: "https://api.obol.tech", chainId: 1 },
+  );
+  return client;
+};
+
+/** Instantiates Obol SDK CLient with provider only
+ * @returns Obol SDK client
+ */
+const obolClientًWithProviderOnly= async () => {
+  const provider = new ethers.BrowserProvider((window as any).ethereum);
+  const client = new Client(
+    { baseUrl: "https://api.obol.tech", chainId: 1 },
+    null,
+    provider as any
+  );
+  return client;
+};
 
 /**
  * Returns successful authorization on accepting latest terms and conditions on https://obol.tech/terms.pdf
@@ -214,6 +237,52 @@ const activateValidator = async (
 
     await tx.wait();
     return;
+  } catch (err) {
+    console.log(err, "err");
+  }
+};
+
+/**
+ * Returns incentives data for a specific address
+ * @param address The Ethereum address to check for incentives
+ * @returns The incentives data including amount, index, merkle proof, and contract address
+ */
+const getObolIncentivesByAddress = async (address: string): Promise<Incentives> => {
+  try {
+    //const client = await obolClientًWithoutProvider();
+    const incentivesData = await client.incentives.getIncentivesByAddress(address);
+    return incentivesData;
+  } catch (err) {
+    console.log(err, "err");
+  }
+};
+
+/**
+ * Checks if incentives have already been claimed for a specific index
+ * @param contractAddress The merkle distributor contract address
+ * @param index The index in the merkle tree
+ * @returns Boolean indicating if the incentives have been claimed
+ */
+const isObolIncentivesClaimed = async (contractAddress: string, index: number): Promise<boolean> => {
+  try {
+    //const client = await obolClientًWithProviderOnly();
+    const claimed = await client.incentives.isClaimed(contractAddress, index);
+    return claimed;
+  } catch (err) {
+    console.log(err, "err");
+  }
+};
+
+/**
+ * Claims incentives for a specific address
+ * @param address The Ethereum address for which to claim incentives
+ * @returns Object containing txHash if successful or alreadyClaimed: true if already claimed
+ */
+const claimObolIncentives = async (address: string): Promise<{ txHash: string } | { alreadyClaimed: boolean }> => {
+  try {
+    //const client = await obolClient();
+    const claimResult = await client.incentives.claimIncentives(address);
+    return claimResult;
   } catch (err) {
     console.log(err, "err");
   }
