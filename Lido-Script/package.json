@@ -6,12 +6,13 @@
   "type": "module",
   "scripts": {
     "start:mainnet": "node script.js beta",
-    "start:holesky": "node script.js holesky"
+    "start:holesky": "node script.js holesky",
+    "start:hoodi": "node script.js hoodi"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@obolnetwork/obol-sdk": "^2.1.0",
+    "@obolnetwork/obol-sdk": "^2.4.3",
     "ethers": "^6.6.4",
     "papaparse": "^5.4.1"
   }

@@ -7,7 +7,8 @@ import pkg from "papaparse";
 
 const ENV_CHAIN_ID_MAPPING={
   "beta":1,
-  "holesky":17000
+  "holesky":17000,
+  "hoodi":560048
 };
 
 const { parse } = pkg;
