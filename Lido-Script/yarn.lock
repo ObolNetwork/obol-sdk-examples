@@ -260,10 +260,10 @@
     mkdirp "^1.0.4"
     rimraf "^3.0.2"
 
-"@obolnetwork/obol-sdk@^2.4.4":
-  version "2.4.4"
-  resolved "https://registry.yarnpkg.com/@obolnetwork/obol-sdk/-/obol-sdk-2.4.4.tgz#d698cf57fc31732f5cbaa515e916e21ecd0fda43"
-  integrity sha512-IbWExpYKQLgMKP0X7UxbM/PFlWQotMk8Gx1R+e8LpIFZZnUow9y+7Q7tJYjqpXJgDExR4Sb883M8slx6qQtbLQ==
+"@obolnetwork/obol-sdk@^2.4.5":
+  version "2.4.5"
+  resolved "https://registry.yarnpkg.com/@obolnetwork/obol-sdk/-/obol-sdk-2.4.5.tgz#23f9f21c577ebebab11d59344bbacdfef048f162"
+  integrity sha512-M6IQvNJAvpSqmPLAVSuG3XRV6rPqkwDa5Hiqb2jQuR7YDvQkHj6MwB0ZU/peJjtkVUuY7E5tUQPPstg4h/qbQA==
   dependencies:
     "@chainsafe/bls" "6.0.3"
     "@chainsafe/blst" "^0.2.9"

@@ -1,5 +1,6 @@
 import { ethers } from "ethers";
-import { Client, validateClusterLock, ClusterDefinition, ClusterLock, OperatorPayload, RewardsSplitPayload, ClusterValidator, TotalSplitPayload, Incentives } from "@obolnetwork/obol-sdk";
+import { Client, validateClusterLock, ClusterDefinition, ClusterLock, OperatorPayload, RewardsSplitPayload, ClusterValidator, TotalSplitPayload, ClaimIncentivesResponse, SignerType } from "@obolnetwork/obol-sdk";
+import { Incentives, ProviderType } from "@obolnetwork/obol-sdk/dist/types/src/types";
 
 //To run the example in terminal, we can create a random privatekey to instanisiate obol-sdk Client
 const clusterConfig = {
@@ -40,7 +41,7 @@ const obolClient = async (): Promise<Client> => {
 /** Instantiates Obol SDK CLient with neither signer nor provider
  * @returns Obol SDK client
  */
-const obolClientًWithoutProvider = async () => {
+const obolClientًWithoutProviderOrSigner = async () => {
   const client = new Client(
     { baseUrl: "https://api.obol.tech", chainId: 1 },
   );
@@ -50,7 +51,7 @@ const obolClientًWithoutProvider = async () => {
 /** Instantiates Obol SDK CLient with provider only
  * @returns Obol SDK client
  */
-const obolClientًWithProviderOnly= async () => {
+const obolClientًWithProviderOnly = async () => {
   const provider = new ethers.BrowserProvider((window as any).ethereum);
   const client = new Client(
     { baseUrl: "https://api.obol.tech", chainId: 1 },
@@ -249,7 +250,7 @@ const activateValidator = async (
  */
 const getObolIncentivesByAddress = async (address: string): Promise<Incentives> => {
   try {
-    //const client = await obolClientًWithoutProvider();
+    //const client = await obolClientًWithoutProviderOrSigner();
     const incentivesData = await client.incentives.getIncentivesByAddress(address);
     return incentivesData;
   } catch (err) {
@@ -275,10 +276,11 @@ const isObolIncentivesClaimed = async (contractAddress: string, index: number): 
 
 /**
  * Claims incentives for a specific address
+ * Note: This method is not yet enabled and will throw an error if called.
  * @param address The Ethereum address for which to claim incentives
- * @returns Object containing txHash if successful or alreadyClaimed: true if already claimed
+ * @returns Object containing txHash if successful or null tsHash if already claimed
  */
-const claimObolIncentives = async (address: string): Promise<{ txHash: string } | { alreadyClaimed: boolean }> => {
+const claimObolIncentives = async (address: string): Promise<ClaimIncentivesResponse> => {
   try {
     //const client = await obolClient();
     const claimResult = await client.incentives.claimIncentives(address);

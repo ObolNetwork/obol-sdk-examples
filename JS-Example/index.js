@@ -43,7 +43,7 @@ const obolClient = async () => {
 /** Instantiates Obol SDK CLient with neither signer nor provider
  * @returns Obol SDK client
  */
-const obolClientًWithoutProvider = async () => {
+const obolClientًWithoutProviderOrSigner = async () => {
   const provider = new ethers.BrowserProvider(window.ethereum);
   const signer = await provider.getSigner();
   const client = new Client(
@@ -251,7 +251,7 @@ const activateValidator = async (clusterLock, validatorIndex) => {
  */
 const getObolIncentivesByAddress = async (address) => {
   try {
-    //const client = await obolClientًWithoutProvider();
+    //const client = await obolClientًWithoutProviderOrSigner();
     const incentivesData = await client.incentives.getIncentivesByAddress(address);
     return incentivesData;
   } catch (err) {
@@ -277,8 +277,9 @@ const isObolIncentivesClaimed = async (contractAddress, index) => {
 
 /**
  * Claims incentives for a specific address
+ * Note: This method is not yet enabled and will throw an error if called.
  * @param address The Ethereum address for which to claim incentives
- * @returns Object containing txHash if successful or alreadyClaimed: true if already claimed
+ * @returns Object containing txHash if successful or null tsHash if already claimed
  */
 const claimObolIncentives = async (address) => {
   try {
