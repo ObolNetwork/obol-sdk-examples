@@ -55,7 +55,7 @@ const obolClientًWithoutProviderOrSigner = async () => {
 /** Instantiates Obol SDK CLient with provider only
  * @returns Obol SDK client
  */
-const obolClientًWithProviderOnly= async () => {
+const obolClientًWithProviderOnly = async () => {
   const provider = new ethers.BrowserProvider(window.ethereum);
   const client = new Client(
     { baseUrl: "https://api.obol.tech", chainId: 1 },
@@ -150,11 +150,14 @@ const acceptClusterDefinition = async ({ enr, version }, configHash) => {
 /**
  * Returns if clusterLock is valid
  * @param clusterLock The clusterLock file that requires verification
+ * @param rpcUrl Optional RPC URL to use for verification when cluster contains Safe wallet signatures
+ * @remarks When the cluster uses Safe wallet for signatures, an RPC URL must be provided as a param or env var to verify
+ * the transaction signatures against the blockchain.
  * @returns true if it is valid
  */
-const validateObolClusterLock = async (clusterLock) => {
+const validateObolClusterLock = async (clusterLock, rpcUrl = null) => {
   try {
-    const isValidLock = await validateClusterLock(clusterLock);
+    const isValidLock = await validateClusterLock(clusterLock, rpcUrl);
     return isValidLock;
   } catch (err) {
     console.log(err, "err");

@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import { Client, validateClusterLock, ClusterDefinition, ClusterLock, OperatorPayload, RewardsSplitPayload, ClusterValidator, TotalSplitPayload, ClaimIncentivesResponse, SignerType } from "@obolnetwork/obol-sdk";
-import { Incentives, ProviderType } from "@obolnetwork/obol-sdk/dist/types/src/types";
+import { ClaimableIncentives, ProviderType } from "@obolnetwork/obol-sdk/dist/types/src/types";
 
 //To run the example in terminal, we can create a random privatekey to instanisiate obol-sdk Client
 const clusterConfig = {
@@ -146,11 +146,14 @@ const acceptClusterDefinition = async (operatorPayload: OperatorPayload, configH
 /**
  * Returns if clusterLock is valid
  * @param clusterLock The clusterLock file that requires verification
+ * @param rpcUrl Optional RPC URL to use for verification when cluster contains Safe wallet signatures
+ * @remarks When the cluster uses Safe wallet for signatures, an RPC URL must be provided as a param or env var to verify
+ * the transaction signatures against the blockchain.
  * @returns true if it is valid
  */
-const validateObolClusterLock = async (clusterLock: ClusterLock) => {
+const validateObolClusterLock = async (clusterLock: ClusterLock, rpcUrl?: string) => {
   try {
-    const isValidLock = await validateClusterLock(clusterLock);
+    const isValidLock = await validateClusterLock(clusterLock, rpcUrl);
     return isValidLock;
   } catch (err) {
     console.log(err, "err");
@@ -248,7 +251,7 @@ const activateValidator = async (
  * @param address The Ethereum address to check for incentives
  * @returns The incentives data including amount, index, merkle proof, and contract address
  */
-const getObolIncentivesByAddress = async (address: string): Promise<Incentives> => {
+const getObolIncentivesByAddress = async (address: string): Promise<ClaimableIncentives> => {
   try {
     //const client = await obolClientًWithoutProviderOrSigner();
     const incentivesData = await client.incentives.getIncentivesByAddress(address);
