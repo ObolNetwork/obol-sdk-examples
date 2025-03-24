@@ -40,6 +40,31 @@ const obolClient = async () => {
   return client;
 };
 
+/** Instantiates Obol SDK CLient with neither signer nor provider
+ * @returns Obol SDK client
+ */
+const obolClientًWithoutProviderOrSigner = async () => {
+  const provider = new ethers.BrowserProvider(window.ethereum);
+  const signer = await provider.getSigner();
+  const client = new Client(
+    { baseUrl: "https://api.obol.tech", chainId: 1 },
+  );
+  return client;
+};
+
+/** Instantiates Obol SDK CLient with provider only
+ * @returns Obol SDK client
+ */
+const obolClientًWithProviderOnly = async () => {
+  const provider = new ethers.BrowserProvider(window.ethereum);
+  const client = new Client(
+    { baseUrl: "https://api.obol.tech", chainId: 1 },
+    null,
+    provider
+  );
+  return client;
+};
+
 /**
  * Returns successful authorization on accepting latest terms and conditions on https://obol.tech/terms.pdf
  * @returns successful authorization
@@ -125,11 +150,14 @@ const acceptClusterDefinition = async ({ enr, version }, configHash) => {
 /**
  * Returns if clusterLock is valid
  * @param clusterLock The clusterLock file that requires verification
+ * @param rpcUrl Optional RPC URL to use for verification when cluster contains Safe wallet signatures
+ * @remarks When the cluster uses Safe wallet for signatures, an RPC URL must be provided as a param or env var to verify
+ * the transaction signatures against the blockchain.
  * @returns true if it is valid
  */
-const validateObolClusterLock = async (clusterLock) => {
+const validateObolClusterLock = async (clusterLock, rpcUrl = null) => {
   try {
-    const isValidLock = await validateClusterLock(clusterLock);
+    const isValidLock = await validateClusterLock(clusterLock, rpcUrl);
     return isValidLock;
   } catch (err) {
     console.log(err, "err");
@@ -173,7 +201,7 @@ const createObolTotalSplit = async ({
   ObolRAFSplit, // optional and defaults to 0.1
   distributorFee, // optional and defaults to 0
   controllerAddress, // optional and defaults to ZeroAddress
-})=> {
+}) => {
   try {
     const { withdrawal_address, fee_recipient_address } = await client.createObolTotalSplit({
       splitRecipients
@@ -214,6 +242,53 @@ const activateValidator = async (clusterLock, validatorIndex) => {
 
     await tx.wait();
     return;
+  } catch (err) {
+    console.log(err, "err");
+  }
+};
+
+/**
+ * Returns incentives data for a specific address
+ * @param address The Ethereum address to check for incentives
+ * @returns The incentives data including amount, index, merkle proof, and contract address
+ */
+const getObolIncentivesByAddress = async (address) => {
+  try {
+    //const client = await obolClientًWithoutProviderOrSigner();
+    const incentivesData = await client.incentives.getIncentivesByAddress(address);
+    return incentivesData;
+  } catch (err) {
+    console.log(err, "err");
+  }
+};
+
+/**
+ * Checks if incentives have already been claimed for a specific index
+ * @param contractAddress The merkle distributor contract address
+ * @param index The index in the merkle tree
+ * @returns Boolean indicating if the incentives have been claimed
+ */
+const isObolIncentivesClaimed = async (contractAddress, index) => {
+  try {
+    //const client = await obolClientًWithProviderOnly();
+    const claimed = await client.incentives.isClaimed(contractAddress, index);
+    return claimed;
+  } catch (err) {
+    console.log(err, "err");
+  }
+};
+
+/**
+ * Claims incentives for a specific address
+ * Note: This method is not yet enabled and will throw an error if called.
+ * @param address The Ethereum address for which to claim incentives
+ * @returns Object containing txHash if successful or null tsHash if already claimed
+ */
+const claimObolIncentives = async (address) => {
+  try {
+    //const client = await obolClient();
+    const claimResult = await client.incentives.claimIncentives(address);
+    return claimResult;
   } catch (err) {
     console.log(err, "err");
   }
