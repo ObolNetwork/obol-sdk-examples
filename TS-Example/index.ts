@@ -293,6 +293,19 @@ const claimObolIncentives = async (address: string): Promise<ClaimIncentivesResp
   }
 };
 
+/**
+ * Validates exit blobs
+ * @param exitBlobs The exit blobs to validate
+ * @returns True if the exit blobs are valid
+ */
+const validateExitBlobs = async (exitBlobs: ExitValidationPayload) => {
+  try {
+    const isValid = await client.exits.validateExitBlobs(exitBlobs);
+    return isValid;
+  } catch (err) {
+    console.log(err, "err");
+  }
+};
 
 const testFunction = async () => {
   const isAuthorised = await acceptObolLatestTermsAndConditions();
