@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import { Client, validateClusterLock, ClusterDefinition, ClusterLock, OperatorPayload, RewardsSplitPayload, ClusterValidator, TotalSplitPayload, ClaimIncentivesResponse, SignerType } from "@obolnetwork/obol-sdk";
-import { ClaimableIncentives, ProviderType } from "@obolnetwork/obol-sdk/dist/types/src/types";
+import { ClaimableIncentives, ExitClusterConfig, ExitValidationPayload, ProviderType } from "@obolnetwork/obol-sdk/dist/types/src/types";
 
 //To run the example in terminal, we can create a random privatekey to instanisiate obol-sdk Client
 const clusterConfig = {
@@ -293,6 +293,42 @@ const claimObolIncentives = async (address: string): Promise<ClaimIncentivesResp
   }
 };
 
+/**
+ * Validates exit blobs
+ * @param exitBlobs The exit blobs to validate
+ * @returns True if the exit blobs are valid
+ */
+const validateExitBlobs = async (lockHash: string, exitBlobs: ExitValidationPayload) => {
+  const lock = await client.getClusterLock(lockHash);
+
+  if (!lock) {
+    throw new Error("Lock not found");
+  }
+
+  const exitClusterConfig: ExitClusterConfig = {
+    definition: {
+      operators: lock.cluster_definition.operators.map(operator => ({
+        enr: operator.enr
+      })),
+      fork_version: lock.cluster_definition.fork_version,
+      threshold: lock.cluster_definition.threshold
+    },
+    distributed_validators: lock.distributed_validators
+  }
+
+  try {
+    const isValid = await client.exit.validateExitBlobs(exitClusterConfig, exitBlobs, "https://ethereum-hoodi-beacon-api.publicnode.com", null);
+    return isValid;
+  } catch (err) {
+    console.error("Failed to validate exit blobs:", {
+      error: err instanceof Error ? err.message : String(err),
+      lockHash,
+      exitBlobsCount: exitBlobs ? Object.keys(exitBlobs).length : 0,
+      stack: err instanceof Error ? err.stack : undefined
+    });
+    throw new Error(`Exit blob validation failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+  }
+};
 
 const testFunction = async () => {
   const isAuthorised = await acceptObolLatestTermsAndConditions();
