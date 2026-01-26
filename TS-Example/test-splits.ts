@@ -1,3 +1,21 @@
+/**
+ * ============================================================================
+ * SETUP INSTRUCTIONS
+ * ============================================================================
+ * 
+ * Before running this script:
+ * 1. Copy .env.example to .env:
+ *    cp .env.example .env
+ * 
+ * 2. Edit .env and add your PRIVATE_KEY:
+ *    PRIVATE_KEY=your_private_key_here
+ * 
+ * 3. Run the script:
+ *    yarn test:splits
+ * 
+ * ============================================================================
+ */
+
 import { ethers, JsonRpcProvider } from 'ethers';
 import { Client } from '@obolnetwork/obol-sdk';
 import dotenv from 'dotenv';
@@ -9,17 +27,17 @@ dotenv.config();
 // ============================================================================
 
 // Network Configuration
-const CHAIN_ID = Number(process.env.CHAIN_ID) || 560048; // Hoodi
-const BASE_URL = process.env.BASE_URL || 'https://obol-api-nonprod-dev.dev.obol.tech';
-const RPC_URL = process.env.RPC_HOODI || process.env.RPC_URL || 'https://ethereum-hoodi-rpc.publicnode.com';
+const CHAIN_ID = 560048; // Hoodi
+const BASE_URL = 'https://obol-api-nonprod-dev.dev.obol.tech';
+const RPC_URL = 'https://ethereum-hoodi-rpc.publicnode.com';
 
 // Cluster Names
-const CLUSTER_NAME_REWARDS_SPLIT = process.env.CLUSTER_NAME_REWARDS_SPLIT || 'testOVMRewardsSplit';
-const CLUSTER_NAME_TOTAL_SPLIT = process.env.CLUSTER_NAME_TOTAL_SPLIT || 'testOVMTotalSplit';
+const CLUSTER_NAME_REWARDS_SPLIT = 'testOVMRewardsSplit';
+const CLUSTER_NAME_TOTAL_SPLIT = 'testOVMTotalSplit';
 
 // Cluster Configuration
-const NUM_VALIDATORS = Number(process.env.NUM_VALIDATORS) || 3;
-const NUM_OPERATORS = Number(process.env.NUM_OPERATORS) || 4;
+const NUM_VALIDATORS = 3;
+const NUM_OPERATORS = 4;
 
 // OVM Rewards Split Configuration
 // Note: Percentages must sum to 99% (not 100%) because RAF automatically adds 1%
