@@ -1,6 +1,6 @@
-import { ethers } from "ethers";
+import { ethers, JsonRpcProvider } from "ethers";
 import { Client, validateClusterLock, ClusterDefinition, ClusterLock, OperatorPayload, RewardsSplitPayload, ClusterValidator, TotalSplitPayload, ClaimIncentivesResponse, SignerType } from "@obolnetwork/obol-sdk";
-import { ClaimableIncentives, ExitClusterConfig, ExitValidationPayload, ProviderType } from "@obolnetwork/obol-sdk/dist/types/src/types";
+import type { ClaimableIncentives, ExitClusterConfig, ExitValidationPayload, ProviderType } from "@obolnetwork/obol-sdk";
 
 //To run the example in terminal, we can create a random privatekey to instanisiate obol-sdk Client
 const clusterConfig = {
@@ -208,6 +208,65 @@ const createObolTotalSplit = async ({
   }
 };
 
+/**
+ * Creates an OVM (One-Withdrawal-Registry) and Rewards Split using the splits class
+ * @param rewardsSplitConfig Configuration for rewards split including recipients, OVM owner, principal recipient, and distributor fee
+ * @returns Object containing withdrawal_address (OVM) and fee_recipient_address (Splitter)
+ */
+const createRewardsSplit = async (rewardsSplitConfig: {
+  rewardSplitRecipients: Array<{ address: string; percentAllocation: number }>;
+  OVMOwnerAddress: string;
+  principalRecipient: string;
+  distributorFeePercent: number;
+  splitOwnerAddress?: string;
+}): Promise<{ withdrawal_address: string; fee_recipient_address: string }> => {
+  try {
+    const result = await client.splits.createValidatorManagerAndRewardsSplit({
+      rewardSplitRecipients: rewardsSplitConfig.rewardSplitRecipients,
+      OVMOwnerAddress: rewardsSplitConfig.OVMOwnerAddress,
+      principalRecipient: rewardsSplitConfig.principalRecipient,
+      distributorFeePercent: rewardsSplitConfig.distributorFeePercent,
+      splitOwnerAddress: rewardsSplitConfig.splitOwnerAddress || rewardsSplitConfig.OVMOwnerAddress,
+    });
+    return {
+      withdrawal_address: result.withdrawal_address,
+      fee_recipient_address: result.fee_recipient_address,
+    };
+  } catch (err) {
+    console.log(err, "err");
+    throw err;
+  }
+};
+
+/**
+ * Creates an OVM (One-Withdrawal-Registry) and Total Split using the splits class
+ * @param totalSplitConfig Configuration for total split including reward and principal recipients, OVM owner, and distributor fee
+ * @returns Object containing withdrawal_address (OVM) and fee_recipient_address (Splitter)
+ */
+const createTotalSplit = async (totalSplitConfig: {
+  rewardSplitRecipients: Array<{ address: string; percentAllocation: number }>;
+  principalSplitRecipients: Array<{ address: string; percentAllocation: number }>;
+  OVMOwnerAddress: string;
+  distributorFeePercent: number;
+  splitOwnerAddress?: string;
+}): Promise<{ withdrawal_address: string; fee_recipient_address: string }> => {
+  try {
+    const result = await client.splits.createValidatorManagerAndTotalSplit({
+      rewardSplitRecipients: totalSplitConfig.rewardSplitRecipients,
+      principalSplitRecipients: totalSplitConfig.principalSplitRecipients,
+      OVMOwnerAddress: totalSplitConfig.OVMOwnerAddress,
+      distributorFeePercent: totalSplitConfig.distributorFeePercent,
+      splitOwnerAddress: totalSplitConfig.splitOwnerAddress || totalSplitConfig.OVMOwnerAddress,
+    });
+    return {
+      withdrawal_address: result.withdrawal_address,
+      fee_recipient_address: result.fee_recipient_address,
+    };
+  } catch (err) {
+    console.log(err, "err");
+    throw err;
+  }
+};
 /**
  * Activates cluster by depositing 32 ethers
  * @param clusterLock The cluster lock that contains the validator to be activated

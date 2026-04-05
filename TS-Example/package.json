@@ -2,18 +2,23 @@
   "name": "ts-example",
   "version": "1.0.0",
   "description": "",
+  "packageManager": "yarn@1.22.22",
   "scripts": {
     "build": "esbuild ./*.ts --outdir=dist --out-extension:.js=.mjs  --format=esm",
-    "start": "node dist/index.mjs"
+    "start": "node dist/index.mjs",
+    "build:test-splits": "esbuild test-splits.ts --outdir=dist --out-extension:.js=.mjs --format=esm --platform=node",
+    "test:splits": "yarn build:test-splits && node dist/test-splits.mjs"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "esbuild": "^0.18.17",
     "typescript": "^5.1.6"
   },
   "dependencies": {
-    "@obolnetwork/obol-sdk": "^2.6.0",
+    "@obolnetwork/obol-sdk": "^2.11.8",
+    "dotenv": "^17.2.2",
     "ethers": "^6.4.0"
   }
 }
