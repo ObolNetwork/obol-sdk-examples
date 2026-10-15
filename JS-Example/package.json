@@ -1,16 +1,23 @@
 {
-  "name": "js",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "obol-sdk-js-example",
+  "version": "2.15.0",
+  "private": true,
+  "description": "Minimal plain-JavaScript example for @obolnetwork/obol-sdk: create, accept and watch a cluster",
   "type": "module",
-  "scripts": {
-    "start": "node index.js"
+  "engines": {
+    "node": ">=22.9.0"
   },
-  "author": "",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env index.js",
+    "typecheck": "tsc --noEmit"
+  },
   "license": "ISC",
   "dependencies": {
-    "@obolnetwork/obol-sdk": "^2.4.6",
-    "ethers": "^6.6.4"
+    "@obolnetwork/obol-sdk": "^2.15.0",
+    "ethers": "^6.17.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "~5.9.3"
   }
 }

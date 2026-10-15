@@ -1,0 +1,44 @@
+name: 'Type-check examples against the latest SDK'
+
+# Installs every example with the newest published @obolnetwork/obol-sdk that
+# matches its package.json range (no lockfiles are committed) and runs
+# `tsc --noEmit`. The weekly run catches SDK releases that break an example.
+
+on:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays 06:00 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        example: [TS-Example, JS-Example, Lido-Script]
+    defaults:
+      run:
+        working-directory: ${{ matrix.example }}
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+
+      - name: Setup node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 24.x
+
+      - name: Install dependencies (latest matching SDK)
+        run: yarn install --no-lockfile --non-interactive --ignore-scripts
+
+      - name: Show resolved SDK version
+        run: node -p "'@obolnetwork/obol-sdk ' + require('./node_modules/@obolnetwork/obol-sdk/package.json').version"
+
+      - name: Type-check
+        run: yarn run typecheck

@@ -1,304 +1,167 @@
-import { Client, validateClusterLock } from "@obolnetwork/obol-sdk";
-import { ethers } from "ethers";
+/**
+ * Minimal plain-JavaScript Obol SDK flow: create a cluster definition, accept
+ * it as an operator, and watch it until the lock is published.
+ * See ../TS-Example for one script per SDK flow.
+ *
+ *   node index.js                 # dry run: prints what it would do, reads only
+ *   node index.js --execute       # signs and writes to the Obol API
+ *   CONFIG_HASH=0x… node index.js # skip creation, accept/watch an existing definition
+ *
+ * Defaults to Hoodi (560048) and the non-production dev Obol API. Mainnet only
+ * with OBOL_NETWORK=mainnet.
+ */
+import {
+  Client,
+  ClusterProgressTimeoutError,
+  ObolApiError,
+  ObolSdkError,
+} from "@obolnetwork/obol-sdk";
+import { JsonRpcProvider, Wallet } from "ethers";
 
-//To run the example in terminal, we can create a random privatekey to instanisiate obol-sdk Client
-const clusterConfig = {
-  name: "testSDK",
-  operators: [
-    { address: "0xC35CfCd67b9C27345a54EDEcC1033F2284148c81" },
-    { address: "0x33807D6F1DCe44b9C599fFE03640762A6F08C496" },
-    { address: "0xc6e76F72Ea672FAe05C357157CfC37720F0aF26f" },
-    { address: "0x86B8145c98e5BD25BA722645b15eD65f024a87EC" },
-  ],
+const NETWORKS = {
+  hoodi: {
+    chainId: 560048,
+    apiUrl: "https://obol-api-nonprod-dev.dev.obol.tech",
+    rpcUrl: "https://ethereum-hoodi-rpc.publicnode.com",
+  },
+  mainnet: {
+    chainId: 1,
+    apiUrl: "https://api.obol.tech",
+    rpcUrl: "https://ethereum-rpc.publicnode.com",
+  },
+};
+
+const env = (name) => process.env[name]?.trim() || undefined;
+const EXECUTE = process.argv.includes("--execute");
+const networkName = (env("OBOL_NETWORK") ?? "hoodi").toLowerCase();
+const network = NETWORKS[networkName];
+if (!network) throw new Error(`OBOL_NETWORK must be hoodi or mainnet`);
+// The SDK wants the bare origin; it adds /v1 itself.
+const apiUrl = (env("OBOL_API_URL") ?? network.apiUrl).replace(/\/v1\/?$/, "");
+
+console.log(
+  `network=${networkName} api=${apiUrl} mode=${EXECUTE ? "EXECUTE" : "dry-run"}`,
+);
+if (networkName === "mainnet") {
+  console.warn(
+    "\n!!! MAINNET: API writes go to production data. Unset OBOL_NETWORK for Hoodi. !!!\n",
+  );
+}
+
+const provider = new JsonRpcProvider(
+  env("RPC_URL") ?? network.rpcUrl,
+  network.chainId,
+  { staticNetwork: true },
+);
+const signer = env("PRIVATE_KEY")
+  ? new Wallet(env("PRIVATE_KEY"), provider)
+  : undefined;
+const client = new Client(
+  { baseUrl: apiUrl, chainId: network.chainId },
+  signer,
+  provider,
+);
+
+const clusterPayload = {
+  name: env("CLUSTER_NAME") ?? `sdk-js-example-${Date.now()}`,
+  operators: (
+    env("OPERATOR_ADDRESSES") ??
+    "0xC35CfCd67b9C27345a54EDEcC1033F2284148c81,0x33807D6F1DCe44b9C599fFE03640762A6F08C496,0xc6e76F72Ea672FAe05C357157CfC37720F0aF26f,0x86B8145c98e5BD25BA722645b15eD65f024a87EC"
+  )
+    .split(",")
+    .map((address) => ({ address: address.trim() })),
   validators: [
     {
-      fee_recipient_address: "0x3CD4958e76C317abcEA19faDd076348808424F99",
-      withdrawal_address: "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
+      withdrawal_address:
+        env("WITHDRAWAL_ADDRESS") ?? "0xE0C5ceA4D3869F156717C66E188Ae81C80914a6e",
+      fee_recipient_address:
+        env("FEE_RECIPIENT_ADDRESS") ??
+        "0x3CD4958e76C317abcEA19faDd076348808424F99",
     },
   ],
 };
 
-const mnemonic = ethers.Wallet.createRandom().mnemonic?.phrase || "";
-const privateKey = ethers.Wallet.fromPhrase(mnemonic).privateKey;
-const wallet = new ethers.Wallet(privateKey);
-const signer = wallet.connect(null);
-const client = new Client(
-  { baseUrl: "https://api.obol.tech", chainId: 1 },
-  signer
-);
+const requireSigner = () => {
+  if (!signer) throw new Error("PRIVATE_KEY is required with --execute");
+  return signer;
+};
 
-/** Instantiates Obol SDK CLient
- * @returns Obol SDK client
- */
-const obolClient = async () => {
-  const provider = new ethers.BrowserProvider(window.ethereum);
-  const signer = await provider.getSigner();
-  const client = new Client(
-    { baseUrl: "https://api.obol.tech", chainId: 1 },
-    signer
+/** 1. Create the definition (or use CONFIG_HASH). */
+const createCluster = async () => {
+  if (!EXECUTE) {
+    console.log("[dry-run] Would create:", JSON.stringify(clusterPayload, null, 2));
+    return undefined;
+  }
+  requireSigner();
+  // Once per address; skipped if already accepted.
+  await client.acceptObolLatestTermsAndConditions({ ifNotAccepted: true });
+  const configHash = await client.createClusterDefinition(clusterPayload);
+  console.log("Created definition:", configHash);
+  return configHash;
+};
+
+/** 2. Accept it as an operator (PRIVATE_KEY must be one of the operators). */
+const acceptCluster = async (configHash) => {
+  const summary = await client.getAcceptanceSummary(configHash);
+  console.log(
+    `"${summary.name}": ${summary.operators.length} operators, threshold ${summary.threshold}, withdrawals to ${summary.withdrawal_addresses.join(", ")}`,
   );
-  return client;
-};
-
-/** Instantiates Obol SDK CLient with neither signer nor provider
- * @returns Obol SDK client
- */
-const obolClientًWithoutProviderOrSigner = async () => {
-  const provider = new ethers.BrowserProvider(window.ethereum);
-  const signer = await provider.getSigner();
-  const client = new Client(
-    { baseUrl: "https://api.obol.tech", chainId: 1 },
-  );
-  return client;
-};
-
-/** Instantiates Obol SDK CLient with provider only
- * @returns Obol SDK client
- */
-const obolClientًWithProviderOnly = async () => {
-  const provider = new ethers.BrowserProvider(window.ethereum);
-  const client = new Client(
-    { baseUrl: "https://api.obol.tech", chainId: 1 },
-    null,
-    provider
-  );
-  return client;
-};
-
-/**
- * Returns successful authorization on accepting latest terms and conditions on https://obol.tech/terms.pdf
- * @returns successful authorization
- */
-const acceptObolLatestTermsAndConditions = async () => {
-  try {
-    //const client = await obolClient();
-    const isAuthorised = await client.acceptObolLatestTermsAndConditions();
-    return isAuthorised;
-  } catch (err) {
-    console.log(err, "err");
-  }
-};
-
-/**
- * Returns the cluster config hash after saving cluster definition
- * @param cluster The cluster defintion { name:string, operators:{address:string}[], validators:{fee_recipient_address:string,withdrawal_address:string}[]}
- * @returns The config hash
- */
-const createObolCluster = async () => {
-  try {
-    //const client = await obolClient();
-    const configHash = await client.createClusterDefinition(clusterConfig);
-    return configHash;
-  } catch (err) {
-    console.log(err, "err");
-  }
-};
-
-/**
- * Returns the cluster definition
- * @param configHash The cluster hash returned from createClusterDefinition
- * @returns The partial/complete cluster definition
- */
-const getObolClusterDefinition = async (configHash) => {
-  try {
-    //const client = await obolClient();
-    const clusterDefinition = await client.getClusterDefinition(configHash);
-    return clusterDefinition;
-  } catch (err) {
-    console.log(err, "err");
-  }
-};
-
-/**
- * Returns the cluster lock
- * @param configHash The cluster hash returned from createClusterDefinition
- * @returns The cluster lock
- */
-const getObolClusterLock = async (configHash) => {
-  try {
-    //const client = await obolClient();
-    const lockFile = await client.getClusterLock(configHash);
-    return lockFile;
-  } catch (err) {
-    console.log(err, "err");
-  }
-};
-
-/**
- * Accepts joining a cluster
- * @param operatorPayload.enr The operator enr
- * @param operatorPayload.version The cluster configuration version
- * @param configHash The cluster configHash
- * @returns the updated cluster
- */
-const acceptClusterDefinition = async ({ enr, version }, configHash) => {
-  try {
-    //const client = await obolClient();
-    const updatedClusterDefintiion = await client.acceptClusterDefinition(
-      {
-        enr,
-        version,
-      },
-      configHash
-    );
-    return updatedClusterDefintiion;
-  } catch (err) {
-    console.log(err, "err");
-  }
-};
-
-/**
- * Returns if clusterLock is valid
- * @param clusterLock The clusterLock file that requires verification
- * @param rpcUrl Optional RPC URL to use for verification when cluster contains Safe wallet signatures
- * @remarks When the cluster uses Safe wallet for signatures, an RPC URL must be provided as a param or env var to verify
- * the transaction signatures against the blockchain.
- * @returns true if it is valid
- */
-const validateObolClusterLock = async (clusterLock, rpcUrl = null) => {
-  try {
-    const isValidLock = await validateClusterLock(clusterLock, rpcUrl);
-    return isValidLock;
-  } catch (err) {
-    console.log(err, "err");
-  }
-};
-
-/**
- * deployes an owr and a splitter and return their addreses to be used as withdrawal and feerecipient address
- * @param rewardsSplitPayload payload needed for OWR/Splitter deployment
- * @returns OWR address as withdrawal_address and splitter address as fee_recipient_address
- */
-const createObolRewardsSplit = async ({
-  splitRecipients, //{ account: 0xC35CfCd67b9C27345a54EDEcC1033F2284148c81, percentAllocation: 99},
-  principalRecipient,
-  etherAmount, //64
-  ObolRAFSplit, // optional and defaults to 1
-  distributorFee, // optional and defaults to 0
-  controllerAddress, // optional and defaults to ZeroAddress
-  recoveryAddress  // optional and defaults to ZeroAddress
-}) => {
-  try {
-    const { withdrawal_address, fee_recipient_address } =
-      await client.createObolRewardsSplit({
-        splitRecipients,
-        principalRecipient,
-        etherAmount,
-      });
-    return { withdrawal_address, fee_recipient_address }
-  } catch (err) {
-    console.log(err, "err");
-  }
-};
-
-/**
- * deployes a splitter and return its address to be used as withdrawal and feerecipient address
- * @param TotalSplitPayload payload needed for Splitter deployment
- * @returns splitter address as withdrawal_address and as fee_recipient_address
- */
-const createObolTotalSplit = async ({
-  splitRecipients, //{ account: 0xC35CfCd67b9C27345a54EDEcC1033F2284148c81, percentAllocation: 99.0},
-  ObolRAFSplit, // optional and defaults to 0.1
-  distributorFee, // optional and defaults to 0
-  controllerAddress, // optional and defaults to ZeroAddress
-}) => {
-  try {
-    const { withdrawal_address, fee_recipient_address } = await client.createObolTotalSplit({
-      splitRecipients
-    })
-    return { withdrawal_address, fee_recipient_address }
-  } catch (err) {
-    console.log(err, "err");
-  }
-};
-
-/**
- * Activates cluster by depositing 32 ethers
- * @param clusterLock The cluster lock that contains the validator to be activated
- * @param validatorIndex The validator index
- */
-const activateValidator = async (clusterLock, validatorIndex) => {
-  try {
-    let DEPOSIT_CONTRACT_ADDRESS; // 0x00000000219ab540356cBB839Cbe05303d7705Fa for Mainnet, "0xff50ed3d0ec03aC01D4C79aAd74928BFF48a7b2b" for GOERLI
-    let depositContractABI; // https://etherscan.io/address/0x00000000219ab540356cBB839Cbe05303d7705Fa#code for Mainnet, and replace the address for Goerli
-    const validatorDepositData =
-      clusterLock.distributed_validators[validatorIndex].deposit_data;
-
-    const depositContract = new ethers.Contract(
-      DEPOSIT_CONTRACT_ADDRESS,
-      depositContractABI,
-      signer
-    );
-
-    const TX_VALUE = ethers.parseEther("32");
-
-    const tx = await depositContract.deposit(
-      validatorDepositData.pubkey,
-      validatorDepositData.withdrawal_credentials,
-      validatorDepositData.signature,
-      validatorDepositData.deposit_data_root,
-      { value: TX_VALUE }
-    );
-
-    await tx.wait();
+  const enr = env("OPERATOR_ENR");
+  if (!enr) {
+    console.log("OPERATOR_ENR not set: skipping acceptance.");
     return;
-  } catch (err) {
-    console.log(err, "err");
   }
+  if (!EXECUTE) {
+    console.log("[dry-run] Would accept with ENR", enr.slice(0, 24) + "…");
+    return;
+  }
+  requireSigner();
+  await client.acceptObolLatestTermsAndConditions({ ifNotAccepted: true });
+  await client.acceptClusterDefinition({ enr }, configHash);
+  console.log("Accepted.");
 };
 
-/**
- * Returns incentives data for a specific address
- * @param address The Ethereum address to check for incentives
- * @returns The incentives data including amount, index, merkle proof, and contract address
- */
-const getObolIncentivesByAddress = async (address) => {
+/** 3. Wait for the lock, printing progress, for at most 60 s. */
+const watchCluster = async (configHash) => {
   try {
-    //const client = await obolClientًWithoutProviderOrSigner();
-    const incentivesData = await client.incentives.getIncentivesByAddress(address);
-    return incentivesData;
+    const { lockHash } = await client.waitFor(configHash, "lock_published", {
+      timeoutMs: 60_000,
+      onProgress: (p) =>
+        console.log(
+          p.step === "awaiting_signatures"
+            ? `  signatures ${p.signed}/${p.total}`
+            : `  ${p.step}`,
+        ),
+    });
+    console.log("Lock published:", lockHash);
   } catch (err) {
-    console.log(err, "err");
+    if (err instanceof ClusterProgressTimeoutError) {
+      console.log(`  ${err.message} (${err.hint})`);
+      return;
+    }
+    throw err;
   }
 };
 
-/**
- * Checks if incentives have already been claimed for a specific index
- * @param contractAddress The merkle distributor contract address
- * @param index The index in the merkle tree
- * @returns Boolean indicating if the incentives have been claimed
- */
-const isObolIncentivesClaimed = async (contractAddress, index) => {
-  try {
-    //const client = await obolClientًWithProviderOnly();
-    const claimed = await client.incentives.isClaimed(contractAddress, index);
-    return claimed;
-  } catch (err) {
-    console.log(err, "err");
+const main = async () => {
+  const configHash = env("CONFIG_HASH") ?? (await createCluster());
+  if (!configHash) {
+    console.log("[dry-run] Set CONFIG_HASH to accept/watch an existing definition.");
+    return;
   }
+  await acceptCluster(configHash);
+  await watchCluster(configHash);
 };
 
-/**
- * Claims incentives for a specific address
- * Note: This method is not yet enabled and will throw an error if called.
- * @param address The Ethereum address for which to claim incentives
- * @returns Object containing txHash if successful or null tsHash if already claimed
- */
-const claimObolIncentives = async (address) => {
-  try {
-    //const client = await obolClient();
-    const claimResult = await client.incentives.claimIncentives(address);
-    return claimResult;
-  } catch (err) {
-    console.log(err, "err");
+main().catch((err) => {
+  if (err instanceof ObolApiError) {
+    console.error(`${err.name} (HTTP ${err.status} ${err.method} ${err.endpoint}): ${err.message}`);
+    if (err.hint) console.error(`hint: ${err.hint}`);
+  } else if (err instanceof ObolSdkError) {
+    console.error(`${err.name} [${err.code}]: ${err.message}`);
+    if (err.hint) console.error(`hint: ${err.hint}`);
+  } else {
+    console.error(err);
   }
-};
-
-const testFunction = async () => {
-  const isAuthorised = await acceptObolLatestTermsAndConditions();
-  console.log(isAuthorised, "isAuthorised");
-  const testingClusterDefinition = await createObolCluster();
-  console.log(testingClusterDefinition, "testingClusterDefinition");
-};
-
-testFunction();
+  process.exitCode = 1;
+});
