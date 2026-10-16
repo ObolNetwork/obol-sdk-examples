@@ -6,8 +6,8 @@
  *   `ConflictError`, `RateLimitError`) for non-2xx Obol API responses, with
  *   `status`, `method`, `endpoint`, `body` and an optional `hint`.
  * - `ObolSdkError` (and subclasses such as `ChainMismatchError`,
- *   `NotAnOperatorError`, `DepositConflictError`, `ClusterProgressTimeoutError`)
- *   for checks the SDK runs locally, with a stable `code` and a `hint`.
+ *   `NotAnOperatorError`, `TransactionSubmissionError`) for checks the SDK
+ *   runs locally, with a stable `code` and a `hint`.
  *
  * Payload validation (`PayloadValidationError`, code PAYLOAD_INVALID) and
  * malformed hash / address arguments (`InvalidArgumentError`, code
@@ -28,14 +28,13 @@ import {
 } from '@obolnetwork/obol-sdk';
 
 /**
- * Prints a preflight result (`preflightCreate`, `preflightAccept`,
- * `incentives.preflightClaim`). Only `error` issues (the default severity)
- * make `ok` false; `warning` / `info` are advisory.
+ * Prints a preflight result (`incentives.preflightClaim`). `ok` is true
+ * when there are no issues.
  */
 export const printIssues = (label: string, result: PreflightResult): void => {
   console.log(`${label}: ${result.ok ? 'ok' : 'FAILED'}`);
   for (const issue of result.issues) {
-    console.log(`  ${issue.severity ?? 'error'} [${issue.code}] ${issue.message}`);
+    console.log(`  [${issue.code}] ${issue.message}`);
     console.log(`    hint: ${issue.hint}`);
   }
 };
