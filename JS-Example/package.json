@@ -2,7 +2,7 @@
   "name": "obol-sdk-js-example",
   "version": "2.15.0",
   "private": true,
-  "description": "Minimal plain-JavaScript example for @obolnetwork/obol-sdk: create, accept and watch a cluster",
+  "description": "Minimal plain-JavaScript example for @obolnetwork/obol-sdk: create and accept a cluster",
   "type": "module",
   "engines": {
     "node": ">=22.9.0"

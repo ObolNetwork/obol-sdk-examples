@@ -1,21 +1,16 @@
 /**
- * Minimal plain-JavaScript Obol SDK flow: create a cluster definition, accept
- * it as an operator, and watch it until the lock is published.
+ * Minimal plain-JavaScript Obol SDK flow: create a cluster definition and
+ * accept it as an operator.
  * See ../TS-Example for one script per SDK flow.
  *
  *   node index.js                 # dry run: prints what it would do, reads only
  *   node index.js --execute       # signs and writes to the Obol API
- *   CONFIG_HASH=0x… node index.js # skip creation, accept/watch an existing definition
+ *   CONFIG_HASH=0x… node index.js # skip creation, accept an existing definition
  *
  * Defaults to Hoodi (560048) and the non-production dev Obol API. Mainnet only
  * with OBOL_NETWORK=mainnet.
  */
-import {
-  Client,
-  ClusterProgressTimeoutError,
-  ObolApiError,
-  ObolSdkError,
-} from "@obolnetwork/obol-sdk";
+import { Client, ObolApiError, ObolSdkError } from "@obolnetwork/obol-sdk";
 import { JsonRpcProvider, Wallet } from "ethers";
 
 const NETWORKS = {
@@ -102,9 +97,12 @@ const createCluster = async () => {
 
 /** 2. Accept it as an operator (PRIVATE_KEY must be one of the operators). */
 const acceptCluster = async (configHash) => {
-  const summary = await client.getAcceptanceSummary(configHash);
+  const definition = await client.getClusterDefinition(configHash);
+  const withdrawals = [
+    ...new Set(definition.validators.map((v) => v.withdrawal_address)),
+  ];
   console.log(
-    `"${summary.name}": ${summary.operators.length} operators, threshold ${summary.threshold}, withdrawals to ${summary.withdrawal_addresses.join(", ")}`,
+    `"${definition.name}": ${definition.operators.length} operators, threshold ${definition.threshold}, withdrawals to ${withdrawals.join(", ")}`,
   );
   const enr = env("OPERATOR_ENR");
   if (!enr) {
@@ -117,40 +115,18 @@ const acceptCluster = async (configHash) => {
   }
   requireSigner();
   await client.acceptObolLatestTermsAndConditions({ ifNotAccepted: true });
-  await client.acceptClusterDefinition({ enr }, configHash);
-  console.log("Accepted.");
-};
-
-/** 3. Wait for the lock, printing progress, for at most 60 s. */
-const watchCluster = async (configHash) => {
-  try {
-    const { lockHash } = await client.waitFor(configHash, "lock_published", {
-      timeoutMs: 60_000,
-      onProgress: (p) =>
-        console.log(
-          p.step === "awaiting_signatures"
-            ? `  signatures ${p.signed}/${p.total}`
-            : `  ${p.step}`,
-        ),
-    });
-    console.log("Lock published:", lockHash);
-  } catch (err) {
-    if (err instanceof ClusterProgressTimeoutError) {
-      console.log(`  ${err.message} (${err.hint})`);
-      return;
-    }
-    throw err;
-  }
+  const updated = await client.acceptClusterDefinition({ enr }, configHash);
+  const signed = updated.operators.filter((o) => o.config_signature).length;
+  console.log(`Accepted. ${signed}/${updated.operators.length} operators signed.`);
 };
 
 const main = async () => {
   const configHash = env("CONFIG_HASH") ?? (await createCluster());
   if (!configHash) {
-    console.log("[dry-run] Set CONFIG_HASH to accept/watch an existing definition.");
+    console.log("[dry-run] Set CONFIG_HASH to accept an existing definition.");
     return;
   }
   await acceptCluster(configHash);
-  await watchCluster(configHash);
 };
 
 main().catch((err) => {

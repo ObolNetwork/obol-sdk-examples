@@ -11,7 +11,6 @@
     "typecheck": "tsc --noEmit",
     "create-cluster": "node --env-file-if-exists=.env src/create-cluster.ts",
     "accept-cluster": "node --env-file-if-exists=.env src/accept-cluster.ts",
-    "watch-cluster": "node --env-file-if-exists=.env src/watch-cluster.ts",
     "validate-lock": "node --env-file-if-exists=.env src/validate-lock.ts",
     "deposits": "node --env-file-if-exists=.env src/deposits.ts",
     "withdrawal": "node --env-file-if-exists=.env src/withdrawal.ts",
@@ -19,14 +18,12 @@
     "splits:total": "node --env-file-if-exists=.env src/splits-total.ts",
     "incentives": "node --env-file-if-exists=.env src/incentives.ts",
     "exits": "node --env-file-if-exists=.env src/exits.ts",
-    "errors": "node --env-file-if-exists=.env src/errors.ts",
-    "viem": "node --env-file-if-exists=.env src/viem-signer.ts"
+    "errors": "node --env-file-if-exists=.env src/errors.ts"
   },
   "license": "ISC",
   "dependencies": {
     "@obolnetwork/obol-sdk": "^2.15.0",
-    "ethers": "^6.17.0",
-    "viem": "^2.48.0"
+    "ethers": "^6.17.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

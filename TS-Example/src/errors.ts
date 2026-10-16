@@ -10,10 +10,8 @@
  * - ObolSdkError: a local check failed. Has a stable `code` and a `hint`.
  *   Subclasses include PayloadValidationError (PAYLOAD_INVALID, with the AJV
  *   `errors`), InvalidArgumentError (INVALID_ARGUMENT, with `argument`),
- *   PreflightFailedError (PREFLIGHT_FAILED, with `issues`),
- *   ResumeMismatchError, ChainMismatchError, DefinitionVerificationError,
- *   NotAnOperatorError, IncentivesPreflightError, DepositConflictError and
- *   ClusterProgressTimeoutError.
+ *   ChainMismatchError, DefinitionVerificationError, NotAnOperatorError,
+ *   IncentivesPreflightError and TransactionSubmissionError.
  * - Standalone classes: InvalidBaseUrlError, UnsupportedChainError,
  *   SignerRequiredError, RequestTimeoutError.
  *
@@ -24,7 +22,6 @@ import {
   Client,
   InvalidArgumentError,
   PayloadValidationError,
-  PreflightFailedError,
   ConflictError,
   NotFoundError,
   ObolApiError,
@@ -56,8 +53,6 @@ const attempt = async (label: string, fn: () => unknown): Promise<void> => {
       console.log(`  -> ${err.code}: ${err.errors.length} schema error(s), first at "${err.errors[0]?.instancePath}"`);
     } else if (err instanceof InvalidArgumentError) {
       console.log(`  -> ${err.code}: fix the "${err.argument}" argument`);
-    } else if (err instanceof PreflightFailedError) {
-      console.log(`  -> ${err.code}: ${err.issues.map(i => i.code).join(', ')}`);
     } else if (err instanceof ChainMismatchError) {
       console.log(
         `  -> switch the wallet to chain ${err.expectedChainId} (it is on ${err.actualChainId})`,
@@ -119,8 +114,8 @@ const main = async (): Promise<void> => {
     mismatched.splits.requestWithdrawal({ ovmAddress: '0x0', pubKeys: [], amounts: [] }),
   );
 
-  // createClusterDefinition / acceptClusterDefinition run the preflight checks
-  // first and report every failed one: PreflightFailedError with `issues`.
+  // createClusterDefinition validates the payload before signing: fewer than
+  // 4 operators is a PayloadValidationError.
   await attempt('createClusterDefinition with 3 operators', () =>
     mismatched.createClusterDefinition({
       ...VALID_PAYLOAD,

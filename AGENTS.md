@@ -16,7 +16,7 @@ TS-Example/           # TypeScript examples — primary reference (start here)
   package.json        # one npm script per flow
   tsconfig.json
 
-JS-Example/           # One minimal plain-JS create + accept + watch flow
+JS-Example/           # One minimal plain-JS create + accept flow
   index.js
 
 Lido-Script/          # Script for creating clusters from clusters.csv
@@ -34,7 +34,7 @@ Lido-Script/          # Script for creating clusters from clusters.csv
 cd TS-Example
 yarn install
 yarn typecheck              # tsc --noEmit
-yarn <flow> [args]          # dry run (read-only / preflight calls only)
+yarn <flow> [args]          # dry run (read-only calls only)
 yarn <flow> [args] --execute  # actually sign / send / write
 ```
 
@@ -43,9 +43,9 @@ Scripts run with Node's built-in type stripping (Node >= 22.18), no build step. 
 ## Safety Rules
 
 - Default network is **Hoodi (560048)** on the **non-production dev API** (`https://obol-api-nonprod-dev.dev.obol.tech`, bare origin: the SDK adds `/v1`). Mainnet only via `OBOL_NETWORK=mainnet`, which prints a loud warning.
-- Anything that sends a transaction or writes to the Obol API must go through `confirmExecute()` in `src/shared/config.ts`: dry run by default, `--execute` to run. In the dry run, call the read-only / preflight SDK methods where they exist.
-- Signers come from `PRIVATE_KEY` (ethers `Wallet`, via `makeClient({ signer: true })`) or the viem adapter. No `window.ethereum`, no random wallets posting to the API, no `as any` casts.
-- Import from the package root (`@obolnetwork/obol-sdk`) or `@obolnetwork/obol-sdk/viem`, never from `dist/`.
+- Anything that sends a transaction or writes to the Obol API must go through `confirmExecute()` in `src/shared/config.ts`: dry run by default, `--execute` to run. In the dry run, call the read-only SDK methods where they exist.
+- Signers come from `PRIVATE_KEY` (ethers `Wallet`, via `makeClient({ signer: true })`). No `window.ethereum`, no random wallets posting to the API, no `as any` casts.
+- Import from the package root (`@obolnetwork/obol-sdk`), never from `dist/`.
 
 ## Development Workflow
 
@@ -65,7 +65,7 @@ import { run } from './shared/run.ts';
 
 const main = async (): Promise<void> => {
   const client = makeClient();                 // read-only
-  const info = await client.someReadMethod(x); // reads / preflight run in dry run too
+  const info = await client.someReadMethod(x); // reads run in dry run too
   console.log(info);
 
   if (!(await confirmExecute('do the write', payload))) return;
@@ -92,14 +92,12 @@ const signer = new Wallet(process.env.PRIVATE_KEY, provider);
 const client = new Client({ baseUrl, chainId }, signer, provider); // signer omitted for read-only
 ```
 
-`src/viem-signer.ts` shows the viem path (`walletClientToSigner`, `publicClientToProvider`).
-
 ## What Belongs Here
 
 - Usage examples for every public `Client` method
 - Usage examples for every sub-module method (`client.splits.*`, `client.eoa.*`, `client.incentives.*`, `client.exit.*`)
 - The `validateClusterLock` standalone export
-- Different client initialization patterns (ethers signer, viem, read-only)
+- Different client initialization patterns (ethers signer, read-only)
 
 **Does not belong here:**
 - Tests (those go in `obol-sdk/test/`)

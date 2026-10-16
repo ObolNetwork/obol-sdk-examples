@@ -30,7 +30,7 @@ const main = async (): Promise<void> => {
   const client = makeClient();
 
   // Read-only API + on-chain checks. Problems come back as issues (code /
-  // message / hint / severity), not exceptions. An address with nothing to
+  // message / hint), not exceptions. An address with nothing to
   // claim gets NO_INCENTIVES (INCENTIVES_NOT_FOUND on a 404).
   const preflight = await client.incentives.preflightClaim(recipient);
   printIssues('preflightClaim', preflight);

@@ -1,36 +1,34 @@
 /**
- * Activate a cluster's validators: read deposit data from the lock, check the
- * beacon chain for existing deposits, then deposit.
+ * Activate a cluster's validators: read verified deposit data from the lock,
+ * then deposit.
  *
- * SDK methods: getDepositData, checkExistingDeposits, eoa.deposit,
- * splits.deposit (when OVM_ADDRESS is set).
+ * SDK methods: getDepositData, eoa.deposit, splits.deposit (when OVM_ADDRESS
+ * is set).
  *
- * Dry run (default): getDepositData + checkExistingDeposits only (read-only).
+ * Dry run (default): getDepositData only (read-only).
  * With --execute: sends the deposit transaction(s) from PRIVATE_KEY.
  *
  *   yarn deposits <lockHash>
  *   yarn deposits <lockHash> --execute
  *   yarn deposits <lockHash> --assume-top-up --execute
  *
- * Top-ups: by default `beaconUrl` is passed, so the SDK itself asks the beacon
- * node which deposits go to existing validators (top-ups: no BLS check, the
- * expected or all-zero withdrawal credentials, max amount from the existing
- * validator) and refuses conflicting pending deposits. --assume-top-up instead
- * passes `skipSignatureVerification: true` without `beaconUrl`: you assert
- * every deposit is a top-up, e.g. Launchpad-style deposits with all-zero
- * credentials and signature, when no beacon node is available. A deposit to a
- * validator that does not exist yet is lost if you get this wrong.
+ * Before sending, the SDK checks every deposit (deposit_data_root, BLS
+ * signature for the chain, amount, withdrawal credentials). --assume-top-up
+ * passes `kind: 'topUp'`: you assert every deposit tops up a validator that
+ * already exists on the beacon chain (no BLS check, the expected or all-zero
+ * withdrawal credentials, up to 2048 ETH), e.g. Launchpad-style top-ups with
+ * all-zero credentials and signature. A deposit to a validator that does not
+ * exist yet is lost if you get this wrong.
  *
- * Env: PRIVATE_KEY, BEACON_URL (defaults to a public node for the network),
- * DEPOSIT_AMOUNT_WEI (when the lock has several deposit amounts),
- * OVM_ADDRESS (deposit through an OVM instead of the batch deposit contract),
- * EXPECTED_WITHDRAWAL_ADDRESS (EOA deposits: refuse other credentials).
+ * Env: PRIVATE_KEY, DEPOSIT_AMOUNT_WEI (when the lock has several deposit
+ * amounts), OVM_ADDRESS (deposit through an OVM instead of the batch deposit
+ * contract), EXPECTED_WITHDRAWAL_ADDRESS (EOA deposits: refuse other
+ * credentials).
  */
-import { DepositConflictError } from '@obolnetwork/obol-sdk';
+import type { DepositKind } from '@obolnetwork/obol-sdk';
 import { formatEther } from 'ethers';
 import {
   args,
-  config,
   confirmExecute,
   makeClient,
   optionalEnv,
@@ -59,23 +57,8 @@ const main = async (): Promise<void> => {
       `Lock has several deposit amounts; set DEPOSIT_AMOUNT_WEI to one of: ${data.amounts.join(', ')}`,
     );
   }
-
-  // Advisory beacon-node check: new / top_up / conflict per deposit.
-  const checks = await client.checkExistingDeposits(deposits, {
-    beaconUrl: config.beaconUrl,
-  });
-  for (const c of checks) {
-    const index =
-      c.existing?.index !== undefined ? ` (index ${c.existing.index})` : '';
-    console.log(`  ${c.pubkey.slice(0, 18)}… ${c.status}${index}`);
-  }
-  if (checks.some(c => c.status === 'top_up')) {
-    console.log(
-      'top_up = the validator already exists; depositing again adds to its balance.',
-    );
-  }
-  if (checks.some(c => c.status === 'conflict')) {
-    console.log('Conflicting pending deposits found; the SDK will refuse to deposit.');
+  for (const d of deposits) {
+    console.log(`  ${d.pubkey.slice(0, 18)}… ${formatEther(d.amount)} ETH`);
   }
 
   const total = deposits.reduce((sum, d) => sum + BigInt(d.amount), 0n);
@@ -83,44 +66,27 @@ const main = async (): Promise<void> => {
   const target = ovmAddress !== undefined ? `OVM ${ovmAddress}` : 'the batch deposit contract';
   if (
     !(await confirmExecute(
-      `deposit ${deposits.length} validator(s), ${formatEther(total)} ETH in total, via ${target}${ASSUME_TOP_UP ? ' (asserting all are top-ups: skipSignatureVerification)' : ''}`,
+      `deposit ${deposits.length} validator(s), ${formatEther(total)} ETH in total, via ${target}${ASSUME_TOP_UP ? " (asserting all are top-ups: kind: 'topUp')" : ''}`,
     ))
   ) {
     return;
   }
 
-  // Default: `beaconUrl`, so the SDK re-runs checkExistingDeposits, treats
-  // existing validators as top-ups, and throws DepositConflictError instead of
-  // sending anything if a pubkey has a pending deposit with other credentials.
-  // --assume-top-up: no beacon node; the caller asserts these are top-ups.
-  // (Without either, an all-zero signature is refused with code
-  // DEPOSIT_LOOKS_LIKE_TOP_UP.)
-  const topUpOptions = ASSUME_TOP_UP
-    ? { skipSignatureVerification: true }
-    : { beaconUrl: config.beaconUrl };
+  // Default `kind: 'deposit'`: deposits to new validators. An all-zero
+  // signature (as used for top-ups) is then refused with code
+  // DEPOSIT_LOOKS_LIKE_TOP_UP.
+  const kind: DepositKind = ASSUME_TOP_UP ? 'topUp' : 'deposit';
 
   const signingClient = makeClient({ signer: true });
-  try {
-    const { txHashes } =
-      ovmAddress !== undefined
-        ? await signingClient.splits.deposit({ ovmAddress, deposits, ...topUpOptions })
-        : await signingClient.eoa.deposit({
-            deposits,
-            ...topUpOptions,
-            expectedWithdrawalAddress: optionalEnv('EXPECTED_WITHDRAWAL_ADDRESS'),
-          });
-    console.log('Deposit tx hashes:', txHashes);
-  } catch (err) {
-    if (err instanceof DepositConflictError) {
-      console.error(`${err.code}: ${err.message}`);
-      for (const c of err.conflicts) {
-        console.error(`  ${c.pubkey}: pending to ${c.existing?.withdrawal_credentials}`);
-      }
-      process.exitCode = 1;
-      return;
-    }
-    throw err;
-  }
+  const { txHashes } =
+    ovmAddress !== undefined
+      ? await signingClient.splits.deposit({ ovmAddress, deposits, kind })
+      : await signingClient.eoa.deposit({
+          deposits,
+          kind,
+          expectedWithdrawalAddress: optionalEnv('EXPECTED_WITHDRAWAL_ADDRESS'),
+        });
+  console.log('Deposit tx hashes:', txHashes);
 };
 
 run(main);
