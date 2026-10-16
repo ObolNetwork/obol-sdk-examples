@@ -6,3 +6,5 @@ node_modules
 
 # Local
 dist
+.env
+Lido-Script/invites.csv

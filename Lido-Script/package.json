@@ -1,19 +1,28 @@
 {
-  "name": "js",
+  "name": "obol-sdk-lido-script",
   "version": "1.0.0",
-  "description": "",
+  "description": "Create many cluster definitions from clusters.csv (dry run unless --execute)",
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start:mainnet": "node script.js beta",
-    "start:holesky": "node script.js holesky",
-    "start:hoodi": "node script.js hoodi"
+    "start:dev": "node script.js dev",
+    "start:hoodi": "node script.js hoodi",
+    "start:mainnet": "OBOL_NETWORK=mainnet node script.js mainnet",
+    "typecheck": "tsc --noEmit"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@obolnetwork/obol-sdk": "^2.4.6",
-    "ethers": "^6.6.4",
+    "@obolnetwork/obol-sdk": "^2.15.0",
+    "ethers": "^6.17.0",
     "papaparse": "^5.4.1"
+  },
+  "private": true,
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "~5.9.3"
+  },
+  "engines": {
+    "node": ">=22.9.0"
   }
 }

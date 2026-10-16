@@ -1,12 +1,26 @@
 {
+  // Scripts run directly with Node's built-in TypeScript type stripping
+  // (Node >= 22.18), so only erasable syntax is allowed and relative imports
+  // keep their .ts extension. tsc is used for type-checking only.
+  //
+  // "Bundler" resolution (not "NodeNext"): the SDK ships one set of .d.ts
+  // files resolved as CommonJS, so under NodeNext they see ethers' CJS types
+  // while this ESM code sees ethers' ESM types, and an ethers Wallet is then
+  // "not assignable" to the SDK's Signer (#private mismatch). Bundler
+  // resolution uses ethers' ESM types on both sides, so no casts are needed.
   "compilerOptions": {
-    "outDir": "./dist",
-    "module": "NodeNext",
-    "target": "ES2020",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true ,
-    "moduleResolution": "NodeNext"
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   },
-  "include": ["./*.ts"],
-  "exclude": ["dist", "build", "node_modules"]
+  "include": ["src/**/*.ts"]
 }
